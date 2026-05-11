@@ -872,8 +872,18 @@ const SUPABASE_KEY = 'sb_publishable_0RT8vVfTWLenaRzzoMlu0Q_rXrxyOif';
 const SB_HEADERS = { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY };
 
 // ADMIN AUTH
-const ADMIN_PASSWORD = 'ffgc2026morocco';
 let isAdmin = false;
+let adminPassword = null;
+
+async function fetchAdminPassword() {
+  try {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/ffgc_config?key=eq.admin_password&select=value', {
+      headers: SB_HEADERS
+    });
+    const rows = await res.json();
+    if (rows.length) adminPassword = rows[0].value;
+  } catch(e) { console.warn('Failed to fetch admin password', e); }
+}
 
 function checkAdmin() {
   return isAdmin;
@@ -882,11 +892,13 @@ function checkAdmin() {
 function promptAdmin(callback) {
   if (isAdmin) { callback(); return; }
   const pwd = prompt('Enter admin password:');
-  if (pwd === ADMIN_PASSWORD) {
+  if (pwd === null) return;
+  if (pwd === adminPassword) {
     isAdmin = true;
     document.getElementById('adminBadge').style.display = 'flex';
+    document.getElementById('adminLoginBtn').style.display = 'none';
     callback();
-  } else if (pwd !== null) {
+  } else {
     alert('Wrong password.');
   }
 }
@@ -998,10 +1010,10 @@ function renderAll() {
   refreshNextBtn();
 }
 
-// INIT — load from Supabase then render
+// INIT — fetch password + load state then render
 (async () => {
-  // Show loading state
   document.getElementById('matchBody').innerHTML = '<div class="empty-state"><div class="empty-state-text">LOADING...</div></div>';
+  await fetchAdminPassword();
   const hasSaved = await loadState();
   if (!hasSaved) initPlayers();
   refreshNextBtn();
