@@ -253,7 +253,7 @@ nav {
     <div class="nav-link" onclick="setPage('history')">HISTORY</div>
   </div>
   <div class="nav-right">
-    <button class="btn btn-danger btn-sm admin-only" onclick="showEliminateModal()">ELIMINATE ✕4</button>
+    <button class="btn btn-danger btn-sm admin-only" onclick="showEliminateModal()">ELIMINATE ✕5</button>
     <button class="btn btn-ghost btn-sm admin-only" onclick="resetState()">↺ RESET</button>
     <div id="adminBadge" style="display:none;align-items:center;gap:6px;font-family:var(--gff);font-size:10px;letter-spacing:2px;color:var(--fire);border:1px solid var(--border-fire);padding:5px 10px">⚡ ADMIN</div>
     <button class="btn btn-ghost btn-sm" id="adminLoginBtn" onclick="promptAdmin(()=>{ document.getElementById('adminLoginBtn').style.display='none'; refreshNextBtn(); renderAll(); })">LOGIN</button>
@@ -299,7 +299,7 @@ nav {
         </div>
         <div style="text-align:right;margin-left:auto">
           <div class="stage-label" id="stageLabel">STAGE 1</div>
-          <div class="match-counter" id="matchCounter">MATCH 01 / 12</div>
+          <div class="match-counter" id="matchCounter">MATCH 01 / 13</div>
         </div>
       </div>
       <div id="matchBody"></div>
@@ -328,7 +328,7 @@ nav {
 
 <script>
 const SCORING = { win:50, round:10, kill:5, assist:2 };
-const ALL_PLAYERS = ["Glenn","Ali","Hamza Ayoub","Amine","Hamzah Albar","Youssef Saaf","Anjar","Gilbert","Simo","Nawfal","Chaimaa","Khaoula"];
+const ALL_PLAYERS = ["Glenn","Ali","Hamza Ayoub","Amine","Hamzah Albar","Youssef Saaf","Anjar","Gilbert","Simo","Nawfal","Chaimaa","Khaoula","Nabil"];
 
 let state = {
   stage: 1,
@@ -382,7 +382,7 @@ function getMatchesPlayed(name) {
 function getDynamicByes() {
   if (state.activePlayers.length === 8) return [];
 
-  const maxMatches = 12;
+  const maxMatches = 13;
   const playsPerPlayer = 8;
   const players = state.activePlayers;
   const completedMatches = state.matchHistory.filter(m => m.stage === state.stage).length;
@@ -453,7 +453,7 @@ function swapPlayer(activeName) {
 
 function generateNextMatch() {
   const nextNum = state.matchesInStage + 1;
-  const maxMatches = state.activePlayers.length === 12 ? 12 : 8;
+  const maxMatches = state.activePlayers.length >= 13 ? 13 : 8;
   if (nextNum > maxMatches) return;
   state.currentMatch = buildMatchFromRank(nextNum);
   document.getElementById('nextMatchBtn').style.display = 'none';
@@ -610,13 +610,13 @@ function saveMatchEdit(histIdx) {
 // ELIMINATE
 function showEliminateModal() {
   const ranked = getRanked(state.activePlayers);
-  const bottom4 = ranked.slice(-4);
+  const bottom5 = ranked.slice(-5);
   showModal(
-    'ELIMINATE BOTTOM 4?',
-    `The following players will be eliminated:\n\n${bottom4.join(', ')}\n\nTheir points are kept on the leaderboard. Stage 2 will begin with the remaining ${state.activePlayers.length-4} players.`,
+    'ELIMINATE BOTTOM 5?',
+    `The following players will be eliminated:\n\n${bottom5.join(', ')}\n\nTheir points are kept on the leaderboard. Stage 2 will begin with the remaining ${state.activePlayers.length-5} players.`,
     [
       { label:'ELIMINATE', cls:'btn-danger', fn: () => {
-        bottom4.forEach(name => {
+        bottom5.forEach(name => {
           state.eliminated.push(name);
           state.activePlayers = state.activePlayers.filter(p=>p!==name);
         });
@@ -698,7 +698,7 @@ function updateHero() {
   const hs = document.getElementById('heroStage'); if(hs) hs.textContent = state.stage;
   document.getElementById('stageBadge').textContent = `STAGE ${state.stage} · 4v4`;
   document.getElementById('stageLabel').textContent = `STAGE ${state.stage}`;
-  const maxMatches = state.activePlayers.length >= 12 ? 12 : 8;
+  const maxMatches = state.activePlayers.length >= 13 ? 13 : 8;
   const nextNum = state.matchesInStage + 1;
   document.getElementById('matchCounter').textContent = state.currentMatch
     ? `MATCH ${String(state.currentMatch.id).padStart(2,'0')} / ${maxMatches}`
@@ -715,7 +715,7 @@ function renderLB() {
     const p = state.players[name];
     const isElim = state.eliminated.includes(name);
     const rc = i===0?'gold':i===1?'silver':i===2?'bronze':'';
-    if (!isElim && ranked[i-1] && state.eliminated.includes(ranked[i-1]) === false && state.activePlayers.length < 12 && i===state.activePlayers.length) {
+    if (!isElim && ranked[i-1] && state.eliminated.includes(ranked[i-1]) === false && state.activePlayers.length < 13 && i===state.activePlayers.length) {
       html += `<div class="cut-line">✕ ELIMINATED</div>`;
     }
     html += `<div class="player-row ${isElim?'eliminated':''}">
@@ -733,7 +733,7 @@ function renderLB() {
 function renderMatchPanel() {
   const m = state.currentMatch;
   const panel = document.getElementById('matchBody');
-  const maxMatches = state.activePlayers.length >= 12 ? 12 : 8;
+  const maxMatches = state.activePlayers.length >= 13 ? 13 : 8;
 
   if (!m) {
     const done = state.matchesInStage >= maxMatches;
@@ -991,7 +991,7 @@ function resetState() {
 }
 
 function refreshNextBtn() {
-  const maxM = state.activePlayers.length >= 12 ? 12 : 8;
+  const maxM = state.activePlayers.length >= 13 ? 13 : 8;
   const show = !state.currentMatch && state.matchesInStage < maxM;
   const btn = document.getElementById('nextMatchBtn');
   if (btn) btn.style.display = show ? 'block' : 'none';
