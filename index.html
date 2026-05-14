@@ -745,10 +745,22 @@ function renderMatchPanel() {
     return;
   }
 
+  const getRank = (name) => {
+    const ranked = getRanked(state.activePlayers);
+    return ranked.indexOf(name) + 1;
+  };
+
   const makePlayerRow = (name) => {
     const k = name.replace(/\s+/g,'_');
+    const rank = getRank(name);
+    const pts = getScore(state.players[name]);
+    const rankColor = rank === 1 ? 'var(--gold)' : rank <= 3 ? '#c0c0c0' : 'var(--muted)';
     return `<div class="player-input-row">
-      <div class="player-input-name">${name}</div>
+      <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
+        <div style="font-family:var(--gff);font-size:13px;color:${rankColor};min-width:22px;text-align:right">#${rank}</div>
+        <div class="player-input-name">${name}</div>
+        <div style="font-family:var(--gff);font-size:11px;color:var(--muted);white-space:nowrap">${pts} pts</div>
+      </div>
       <div class="stat-inputs">
         <div class="stat-input-wrap">
           <label>KILL</label>
@@ -779,7 +791,11 @@ function renderMatchPanel() {
       <div class="team-col">${m.teamA.map(n=>makePlayerRow(n)).join('')}</div>
       <div class="team-col team-col-b">${m.teamB.map(n=>makePlayerRow(n)).join('')}</div>
     </div>
-    ${m.byes.length ? `<div class="bye-row"><span style="color:var(--muted2);margin-right:8px;letter-spacing:2px">BYE</span>${m.byes.join(' · ')}</div>` : ''}
+    ${m.byes.length ? `<div class="bye-row"><span style="color:var(--muted2);margin-right:8px;letter-spacing:2px">BYE</span>${m.byes.map(name => {
+      const r = getRanked(state.activePlayers).indexOf(name)+1;
+      const pts = getScore(state.players[name]);
+      return `<span style="margin-right:12px;font-family:var(--gff);font-size:11px">#${r} ${name} <span style="color:var(--muted);font-size:10px">${pts}pts</span></span>`;
+    }).join('')}</div>` : ''}
     <div class="match-footer">
       <button class="btn btn-success admin-only" onclick="submitMatch()">SUBMIT RESULT</button>
       <span class="scoring-hint">WIN +50 · ROUND +10 · KILL +5 · ASSIST +2</span>
