@@ -100,10 +100,20 @@ nav {
 .pill-danger { border-color:rgba(255,23,68,0.3); color:var(--danger); background:rgba(255,23,68,0.08); }
 
 /* LEADERBOARD */
-.lb-header { display:grid; grid-template-columns:28px 1fr 50px 50px 44px 65px; gap:6px; padding:10px 16px; border-bottom:1px solid var(--border); }
-.lb-col { font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--muted2); text-align:right; font-family:var(--gff); }
+.lb-stage-nav { display:flex; align-items:center; justify-content:space-between; padding:8px 14px; border-bottom:1px solid var(--border); background:var(--dark3); }
+.lb-stage-title { font-family:var(--gff); font-size:12px; letter-spacing:3px; color:var(--fire); text-transform:uppercase; }
+.lb-stage-btn { background:transparent; border:1px solid var(--border); color:var(--muted); font-family:var(--gff); font-size:14px; padding:3px 10px; cursor:pointer; transition:all 0.15s; }
+.lb-stage-btn:hover { border-color:var(--fire); color:var(--fire); }
+.lb-stage-btn:disabled { opacity:0.2; cursor:default; }
+.lb-header { display:grid; gap:4px; padding:8px 14px; border-bottom:1px solid var(--border); }
+.lb-header.s1 { grid-template-columns:24px 1fr 36px 36px 36px 60px; }
+.lb-header.s2 { grid-template-columns:24px 1fr 36px 36px 36px 60px 70px 70px; }
+.lb-col { font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--muted2); text-align:right; font-family:var(--gff); }
 .lb-col:nth-child(2) { text-align:left; }
-.player-row { display:grid; grid-template-columns:28px 1fr 50px 50px 44px 65px; gap:6px; padding:8px 14px; border-bottom:1px solid rgba(255,255,255,0.03); align-items:center; transition:background 0.15s; }
+.lb-col.highlight { color:var(--fire); }
+.player-row { display:grid; gap:4px; padding:8px 14px; border-bottom:1px solid rgba(255,255,255,0.03); align-items:center; transition:background 0.15s; }
+.player-row.s1 { grid-template-columns:24px 1fr 36px 36px 36px 60px; }
+.player-row.s2 { grid-template-columns:24px 1fr 36px 36px 36px 60px 70px 70px; }
 .player-row:hover { background:rgba(255,179,0,0.05); }
 .player-row.eliminated { opacity:0.25; text-decoration:line-through; }
 .rank-num { font-family:var(--gff); font-size:17px; color:var(--muted2); text-align:center; }
@@ -277,15 +287,11 @@ nav {
   <div id="lbPanel" class="panel">
     <div class="panel-head">
       <div class="panel-head-title">Leaderboard</div>
-      <div class="pill" id="lbPill">STAGE 1</div>
     </div>
-    <div class="lb-header">
-      <div class="lb-col">#</div>
-      <div class="lb-col" style="text-align:left">Player</div>
-      <div class="lb-col">S1</div>
-      <div class="lb-col">S2</div>
-      <div class="lb-col">MP</div>
-      <div class="lb-col">PTS</div>
+    <div class="lb-stage-nav">
+      <button class="lb-stage-btn" id="lbPrevBtn" onclick="lbSwitchStage(-1)">&#8249;</button>
+      <div class="lb-stage-title" id="lbStageTitle">STAGE 1</div>
+      <button class="lb-stage-btn" id="lbNextBtn" onclick="lbSwitchStage(1)">&#8250;</button>
     </div>
     <div id="lbBody"></div>
   </div>
@@ -638,6 +644,7 @@ function showEliminateModal() {
         state.stage = 2;
         state.matchesInStage = 0;
         state.currentMatch = null;
+        lbViewStage = 2;
         refreshNextBtn();
         hideModal();
         renderAll();
@@ -718,31 +725,128 @@ function updateHero() {
   document.getElementById('matchCounter').textContent = state.currentMatch
     ? `MATCH ${String(state.currentMatch.id).padStart(2,'0')} / ${maxMatches}`
     : `${state.matchesInStage} / ${maxMatches} DONE`;
-  document.getElementById('lbPill').textContent = `STAGE ${state.stage}`;
+  // lbStageTitle updated in renderLB
+}
+
+// LB stage view: 1 or 2
+let lbViewStage = 1;
+
+function lbSwitchStage(dir) {
+  const maxStage = state.stage;
+  lbViewStage = Math.max(1, Math.min(maxStage, lbViewStage + dir));
+  renderLB();
+}
+
+function getWL(name, stage) {
+  let wins = 0, losses = 0;
+  state.matchHistory.forEach(m => {
+    if (m.stage !== stage) return;
+    const inA = m.teamA.includes(name);
+    const inB = m.teamB.includes(name);
+    if (!inA && !inB) return;
+    const won = (inA && m.result.winnerTeam === 'A') || (inB && m.result.winnerTeam === 'B');
+    if (won) wins++; else losses++;
+  });
+  return { wins, losses };
 }
 
 function renderLB() {
   const allForLB = [...state.activePlayers, ...state.eliminated];
-  const ranked = getRanked(allForLB);
-  const cutStart = state.activePlayers.length; // after active players
-  let html = '';
-  ranked.forEach((name,i) => {
-    const p = state.players[name];
-    const isElim = state.eliminated.includes(name);
-    const rc = i===0?'gold':i===1?'silver':i===2?'bronze':'';
-    if (!isElim && ranked[i-1] && state.eliminated.includes(ranked[i-1]) === false && state.activePlayers.length < 13 && i===state.activePlayers.length) {
-      html += `<div class="cut-line">✕ ELIMINATED</div>`;
-    }
-    html += `<div class="player-row ${isElim?'eliminated':''}">
-      <div class="rank-num ${rc}">${i+1}</div>
-      <div class="player-name">${name}</div>
-      <div class="stat">${p.stage1Score}</div>
-      <div class="stat">${p.stage2Score}</div>
-      <div class="stat">${getMP(p)}</div>
-      <div class="stat score">${getScore(p)}</div>
+
+  // Only show stage 2 tab if stage 2 exists
+  const hasStage2 = state.stage === 2;
+  if (!hasStage2) lbViewStage = 1;
+
+  // Update nav buttons
+  const prevBtn = document.getElementById('lbPrevBtn');
+  const nextBtn = document.getElementById('lbNextBtn');
+  const title = document.getElementById('lbStageTitle');
+  if (prevBtn) prevBtn.disabled = lbViewStage === 1;
+  if (nextBtn) nextBtn.disabled = lbViewStage === state.stage || !hasStage2;
+  if (title) title.textContent = `STAGE ${lbViewStage}`;
+
+  if (lbViewStage === 1) {
+    // Sort by stage1Score desc
+    const ranked = allForLB.slice().sort((a, b) => {
+      const diff = (state.players[b].stage1Score || 0) - (state.players[a].stage1Score || 0);
+      return diff !== 0 ? diff : state.players[a].initialRank - state.players[b].initialRank;
+    });
+
+    let html = `<div class="lb-header s1">
+      <div class="lb-col">#</div>
+      <div class="lb-col" style="text-align:left">PLAYER</div>
+      <div class="lb-col">MP</div>
+      <div class="lb-col">W</div>
+      <div class="lb-col">L</div>
+      <div class="lb-col highlight">PTS</div>
     </div>`;
-  });
-  document.getElementById('lbBody').innerHTML = html;
+
+    ranked.forEach((name, i) => {
+      const p = state.players[name];
+      const isElim = state.eliminated.includes(name);
+      const rc = i===0?'gold':i===1?'silver':i===2?'bronze':'';
+      const { wins, losses } = getWL(name, 1);
+      const mp = (p.stage1Matches || 0);
+
+      if (!isElim && state.activePlayers.length < 13 && i === state.activePlayers.length) {
+        html += `<div class="cut-line">✕ ELIMINATED</div>`;
+      }
+
+      html += `<div class="player-row s1 ${isElim ? 'eliminated' : ''}">
+        <div class="rank-num ${rc}">${i+1}</div>
+        <div class="player-name">${name}</div>
+        <div class="stat">${mp}</div>
+        <div class="stat">${wins}</div>
+        <div class="stat">${losses}</div>
+        <div class="stat score">${p.stage1Score || 0}</div>
+      </div>`;
+    });
+
+    document.getElementById('lbBody').innerHTML = html;
+
+  } else {
+    // Stage 2 — only active players, sort by total (stage2 + bonus)
+    const ranked = state.activePlayers.slice().sort((a, b) => {
+      const pa = state.players[a], pb = state.players[b];
+      const totalA = (pa.stage2Score || 0) + Math.round((pa.stage1Score || 0));
+      const totalB = (pb.stage2Score || 0) + Math.round((pb.stage1Score || 0));
+      return totalB - totalA;
+    });
+
+    let html = `<div class="lb-header s2">
+      <div class="lb-col">#</div>
+      <div class="lb-col" style="text-align:left">PLAYER</div>
+      <div class="lb-col">MP</div>
+      <div class="lb-col">W</div>
+      <div class="lb-col">L</div>
+      <div class="lb-col">PTS S2</div>
+      <div class="lb-col">BONUS</div>
+      <div class="lb-col highlight">TOTAL</div>
+    </div>`;
+
+    ranked.forEach((name, i) => {
+      const p = state.players[name];
+      const rc = i===0?'gold':i===1?'silver':i===2?'bronze':'';
+      const { wins, losses } = getWL(name, 2);
+      const mp = p.stage2Matches || 0;
+      const s2 = p.stage2Score || 0;
+      const bonus = Math.round(p.stage1Score || 0); // already reduced to 25% on eliminate
+      const total = s2 + bonus;
+
+      html += `<div class="player-row s2">
+        <div class="rank-num ${rc}">${i+1}</div>
+        <div class="player-name">${name}</div>
+        <div class="stat">${mp}</div>
+        <div class="stat">${wins}</div>
+        <div class="stat">${losses}</div>
+        <div class="stat">${s2}</div>
+        <div class="stat">${bonus}</div>
+        <div class="stat score">${total}</div>
+      </div>`;
+    });
+
+    document.getElementById('lbBody').innerHTML = html;
+  }
 }
 
 function renderMatchPanel() {
