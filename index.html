@@ -835,10 +835,10 @@ function renderHistory() {
 
     const makeStatRow = (name, team) => {
       const won = r.winnerTeam === team;
-      const rounds = won ? r.scoreA : r.scoreB;
+      const rounds = team === 'A' ? r.scoreA : r.scoreB;
       const k = r.kills[name] || 0;
       const a = r.assists[name] || 0;
-      const playerScore = (won ? SCORING.win : 0) + (won ? r.scoreA : r.scoreB) * SCORING.round + k * SCORING.kill + a * SCORING.assist;
+      const playerScore = (won ? SCORING.win : 0) + rounds * SCORING.round + k * SCORING.kill + a * SCORING.assist;
       return '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04)">'
         + '<div style="font-family:var(--gff);font-size:13px;color:var(--text)">' + name + '</div>'
         + '<div style="display:flex;gap:16px;align-items:center;font-family:var(--gff);font-size:12px;color:var(--muted)">'
